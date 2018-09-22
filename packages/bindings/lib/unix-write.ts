@@ -1,27 +1,29 @@
-const fs = require('fs')
-const debug = require('debug')
+import fs from 'fs'
+import debug from 'debug'
+import { DarwinBinding } from './darwin'
+import { LinuxBinding } from './linux'
 const logger = debug('serialport/bindings/unixWrite')
 
-module.exports = function unixWrite(buffer, offset) {
-  offset = offset || 0
+export async function unixWrite(binding: DarwinBinding | LinuxBinding, buffer: Buffer, offset = 0): Promise<void> {
   const bytesToWrite = buffer.length - offset
   logger('Starting write', buffer.length, 'bytes offset', offset, 'bytesToWrite', bytesToWrite)
-  if (!this.isOpen) {
+  if (!binding.fd) {
     return Promise.reject(new Error('Port is not open'))
   }
+  const fd = binding.fd
   return new Promise((resolve, reject) => {
-    fs.write(this.fd, buffer, offset, bytesToWrite, (err, bytesWritten) => {
+    fs.write(fd, buffer, offset, bytesToWrite, (err, bytesWritten) => {
       logger('write returned', err, bytesWritten)
       if (err && (err.code === 'EAGAIN' || err.code === 'EWOULDBLOCK' || err.code === 'EINTR')) {
-        if (!this.isOpen) {
+        if (!binding.isOpen) {
           return reject(new Error('Port is not open'))
         }
         logger('waiting for writable because of code:', err.code)
-        this.poller.once('writable', err => {
-          if (err) {
-            return reject(err)
+        binding.poller.once('writable', (pollerError: Error) => {
+          if (pollerError) {
+            return reject(pollerError)
           }
-          resolve(unixWrite.call(this, buffer, offset))
+          resolve(unixWrite.call(binding, buffer, offset))
         })
         return
       }
@@ -34,7 +36,7 @@ module.exports = function unixWrite(buffer, offset) {
           err.errno === -1) // generic error
 
       if (disconnectError) {
-        err.disconnect = true
+        ;(err as any).disconnect = true
         logger('disconnecting', err)
       }
 
@@ -45,14 +47,14 @@ module.exports = function unixWrite(buffer, offset) {
 
       logger('wrote', bytesWritten, 'bytes')
       if (bytesWritten + offset < buffer.length) {
-        if (!this.isOpen) {
+        if (!binding.isOpen) {
           return reject(new Error('Port is not open'))
         }
-        return resolve(unixWrite.call(this, buffer, bytesWritten + offset))
+        return resolve(unixWrite.call(binding, buffer, bytesWritten + offset))
       }
 
       logger('Finished writing', bytesWritten + offset, 'bytes')
       resolve()
     })
-  })
+  }) as Promise<void>
 }

@@ -1,24 +1,27 @@
-const fs = require('fs')
-const debug = require('debug')
+import fs from 'fs'
+import debug from 'debug'
+import { DarwinBinding } from './darwin';
+import { LinuxBinding } from './linux';
 const logger = debug('serialport/bindings/unixRead')
 
-module.exports = function unixRead(buffer, offset, length) {
+export async function unixRead(binding: DarwinBinding | LinuxBinding, buffer: Buffer, offset: number, length: number): Promise<number> {
   logger('Starting read')
-  if (!this.isOpen) {
+  if (!binding.fd) {
     return Promise.reject(new Error('Port is not open'))
   }
+  const fd = binding.fd
   return new Promise((resolve, reject) => {
-    fs.read(this.fd, buffer, offset, length, null, (err, bytesRead) => {
+    fs.read(fd, buffer, offset, length, null, (err, bytesRead) => {
       if (err && (err.code === 'EAGAIN' || err.code === 'EWOULDBLOCK' || err.code === 'EINTR')) {
-        if (!this.isOpen) {
+        if (!binding.isOpen) {
           return reject(new Error('Port is not open'))
         }
         logger('waiting for readable because of code:', err.code)
-        this.poller.once('readable', err => {
-          if (err) {
-            return reject(err)
+        binding.poller.once('readable', (pollerError: Error) => {
+          if (pollerError) {
+            return reject(pollerError)
           }
-          resolve(this.read(buffer, offset, length))
+          resolve(binding.read(buffer, offset, length))
         })
         return
       }
@@ -31,7 +34,7 @@ module.exports = function unixRead(buffer, offset, length) {
           err.errno === -1) // generic error
 
       if (disconnectError) {
-        err.disconnect = true
+        ;(err as any).disconnect = true
         logger('disconnecting', err)
       }
 
@@ -40,12 +43,12 @@ module.exports = function unixRead(buffer, offset, length) {
       }
 
       if (bytesRead === 0) {
-        resolve(this.read(buffer, offset, length))
+        resolve(binding.read(buffer, offset, length))
         return
       }
 
       logger('Finished read', bytesRead, 'bytes')
       resolve(bytesRead)
     })
-  })
+  }) as Promise<number>
 }

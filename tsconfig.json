@@ -1,0 +1,50 @@
+{
+  "compilerOptions": {
+    "allowJs": false,
+    "composite": true,
+    "declaration": true,
+    "declarationMap": false,
+    "lib": [
+      "es2017",
+      "esnext.asynciterable"
+    ],
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "noImplicitAny": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "outDir": "dist",
+    "sourceMap": false,
+    "strict": true,
+    "strictNullChecks": true,
+    "target": "es2017",
+    "esModuleInterop": true,
+    "baseUrl": "./packages",
+    "paths": {
+      "serialport": ["./serialport/lib"],
+      "@serialport/*": ["./*/lib"]
+    }
+  },
+  "references": [
+    { "path": "./packages/binding-abstract" },
+    { "path": "./packages/binding-mock" },
+    { "path": "./packages/bindings" },
+    { "path": "./packages/list" },
+    { "path": "./packages/parser-byte-length" },
+    { "path": "./packages/parser-cctalk" },
+    { "path": "./packages/parser-delimiter" },
+    { "path": "./packages/parser-readline" },
+    { "path": "./packages/parser-ready" },
+    { "path": "./packages/parser-regex" },
+    { "path": "./packages/parser-slip-encoder" },
+    { "path": "./packages/repl" },
+    { "path": "./packages/serialport" },
+    { "path": "./packages/stream" },
+    { "path": "./packages/terminal" },
+  ],
+  "exclude": [
+    "node_modules",
+    "*/**/*-test.ts",
+    "*/**/dist"
+  ]
+}

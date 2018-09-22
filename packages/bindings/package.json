@@ -1,7 +1,8 @@
 {
   "name": "@serialport/bindings",
   "version": "2.0.2",
-  "main": "lib",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
     "keywords": [
       "serialport-binding"
     ],
@@ -20,6 +21,8 @@
     "node": ">=6.0.0"
   },
   "scripts": {
+    "build": "npm run build:ts",
+    "build:ts": "tsc",
     "install": "prebuild-install --tag-prefix @serialport/bindings@ || node-gyp rebuild",
     "lint": "cc --verbose",
     "prebuild": "prebuild --all --force --strip --verbose --tag-prefix @serialport/bindings@",

@@ -1,9 +1,13 @@
 {
   "name": "@serialport/terminal",
   "version": "1.0.0",
-  "main": "lib/terminal.js",
+  "main": "dist/terminal.js",
   "bin": {
-    "serialport-terminal": "./lib/terminal.js"
+    "serialport-terminal": "dist/terminal.js"
+  },
+  "scripts": {
+    "build": "npm run build:ts",
+    "build:ts": "tsc"
   },
   "dependencies": {
     "commander": "^2.13.0",

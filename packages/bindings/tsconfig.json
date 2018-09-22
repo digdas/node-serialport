@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "dist"
+  },
+  "include": [
+    "lib", "../stream/lib/stream.ts", "../stream/lib/stream.js", "../stream/lib/stream.test.js"
+  ]
+}

@@ -1,4 +1,9 @@
-const Transform = require('stream').Transform
+import { Transform, TransformOptions } from 'stream'
+
+export interface DelimiterParserOptions extends TransformOptions {
+  readonly delimiter?: any
+  readonly includeDelimiter?: boolean
+}
 
 /**
  * A transform stream that emits data each time a byte sequence is received.
@@ -11,8 +16,13 @@ const port = new SerialPort('/dev/tty-usbserial1')
 const parser = port.pipe(new Delimiter({ delimiter: '\n' }))
 parser.on('data', console.log)
  */
-class DelimiterParser extends Transform {
-  constructor(options = {}) {
+export class DelimiterParser extends Transform {
+  // tslint:disable-next-line:readonly-keyword
+  buffer: Buffer
+  readonly delimiter: Buffer
+  readonly includeDelimiter: boolean
+
+  constructor(options: DelimiterParserOptions = {}) {
     super(options)
 
     if (options.delimiter === undefined) {
@@ -28,9 +38,16 @@ class DelimiterParser extends Transform {
     this.buffer = Buffer.alloc(0)
   }
 
-  _transform(chunk, encoding, cb) {
+  _flush(cb: () => void) {
+    this.push(this.buffer)
+    this.buffer = Buffer.alloc(0)
+    cb()
+  }
+
+  _transform(chunk: Buffer, _encoding: string, cb: () => void) {
     let data = Buffer.concat([this.buffer, chunk])
     let position
+    // tslint:disable-next-line:no-conditional-assignment
     while ((position = data.indexOf(this.delimiter)) !== -1) {
       this.push(data.slice(0, position + (this.includeDelimiter ? this.delimiter.length : 0)))
       data = data.slice(position + this.delimiter.length)
@@ -38,12 +55,4 @@ class DelimiterParser extends Transform {
     this.buffer = data
     cb()
   }
-
-  _flush(cb) {
-    this.push(this.buffer)
-    this.buffer = Buffer.alloc(0)
-    cb()
-  }
 }
-
-module.exports = DelimiterParser

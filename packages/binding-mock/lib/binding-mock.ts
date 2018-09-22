@@ -1,18 +1,27 @@
-const AbstractBinding = require('@serialport/binding-abstract')
-const debug = require('debug')('serialport/binding-mock')
+// tslint:disable:member-ordering readonly-keyword
+import { AbstractBinding } from '@serialport/binding-abstract'
+import debug from 'debug'
+const logger = debug('serialport/binding-mock')
 
 let ports = {}
 let serialNumber = 0
 
-function resolveNextTick(value) {
-  return new Promise(resolve => process.nextTick(() => resolve(value)))
+function resolveNextTick<T>(value?: T) {
+  return new Promise(resolve => process.nextTick(() => resolve(value))) as Promise<T>
 }
 
 /**
  * Mock bindings for pretend serialport access
  */
 class MockBinding extends AbstractBinding {
-  constructor(opt) {
+  lastWrite: any
+  pendingRead: any
+  port: any
+  recording: Buffer
+  serialNumber?: number
+  writeOperation: any
+
+  constructor(opt: any) {
     super(opt)
     this.pendingRead = null // thunk for a promise or null
     this.isOpen = false
@@ -28,16 +37,14 @@ class MockBinding extends AbstractBinding {
   }
 
   // Create a mock port
-  static createPort(path, opt) {
+  static createPort(path: string, options: any) {
     serialNumber++
-    opt = Object.assign(
-      {
-        echo: false,
-        record: false,
-        readyData: Buffer.from('READY'),
-      },
-      opt
-    )
+    const opt = {
+      echo: false,
+      record: false,
+      readyData: Buffer.from('READY'),
+      ...options,
+    }
 
     ports[path] = {
       data: Buffer.alloc(0),
@@ -54,7 +61,7 @@ class MockBinding extends AbstractBinding {
         productId: undefined,
       },
     }
-    debug(serialNumber, 'created port', JSON.stringify({ path, opt }))
+    logger(serialNumber, 'created port', JSON.stringify({ path, opt }))
   }
 
   static list() {
@@ -65,14 +72,16 @@ class MockBinding extends AbstractBinding {
   }
 
   // Emit data on a mock port
-  emitData(data) {
+  // tslint:disable-next-line:member-ordering
+  emitData(data: Buffer) {
     if (!this.isOpen) {
       throw new Error('Port must be open to pretend to receive data')
     }
     if (!Buffer.isBuffer(data)) {
+      // tslint:disable-next-line:no-parameter-reassignment
       data = Buffer.from(data)
     }
-    debug(this.serialNumber, 'emitting data - pending read:', Boolean(this.pendingRead))
+    logger(this.serialNumber, 'emitting data - pending read:', Boolean(this.pendingRead))
     this.port.data = Buffer.concat([this.port.data, data])
     if (this.pendingRead) {
       process.nextTick(this.pendingRead)
@@ -80,8 +89,8 @@ class MockBinding extends AbstractBinding {
     }
   }
 
-  open(path, opt) {
-    debug(null, `opening path ${path}`)
+  open(path: string, opt: any) {
+    logger(null, `opening path ${path}`)
     const port = (this.port = ports[path])
     return super
       .open(path, opt)
@@ -102,11 +111,11 @@ class MockBinding extends AbstractBinding {
 
         port.openOpt = Object.assign({}, opt)
         this.isOpen = true
-        debug(this.serialNumber, 'port is open')
+        logger(this.serialNumber, 'port is open')
         if (port.echo) {
           process.nextTick(() => {
             if (this.isOpen) {
-              debug(this.serialNumber, 'emitting ready data')
+              logger(this.serialNumber, 'emitting ready data')
               this.emitData(port.readyData)
             }
           })
@@ -116,7 +125,7 @@ class MockBinding extends AbstractBinding {
 
   close() {
     const port = this.port
-    debug(this.serialNumber, 'closing port')
+    logger(this.serialNumber, 'closing port')
     if (!port) {
       return Promise.reject(new Error('already closed'))
     }
@@ -125,7 +134,7 @@ class MockBinding extends AbstractBinding {
       delete port.openOpt
       // reset data on close
       port.data = Buffer.alloc(0)
-      debug(this.serialNumber, 'port is closed')
+      logger(this.serialNumber, 'port is closed')
       delete this.port
       delete this.serialNumber
       this.isOpen = false
@@ -136,7 +145,7 @@ class MockBinding extends AbstractBinding {
   }
 
   read(buffer, offset, length) {
-    debug(this.serialNumber, 'reading', length, 'bytes')
+    logger(this.serialNumber, 'reading', length, 'bytes')
     return super
       .read(buffer, offset, length)
       .then(resolveNextTick)
@@ -157,13 +166,13 @@ class MockBinding extends AbstractBinding {
         const data = this.port.data.slice(0, length)
         const readLength = data.copy(buffer, offset)
         this.port.data = this.port.data.slice(length)
-        debug(this.serialNumber, 'read', readLength, 'bytes')
+        logger(this.serialNumber, 'read', readLength, 'bytes')
         return readLength
       })
   }
 
   write(buffer) {
-    debug(this.serialNumber, 'writing')
+    logger(this.serialNumber, 'writing')
     if (this.writeOperation) {
       throw new Error('Overlapping writes are not supported and should be queued by the serialport object')
     }
@@ -186,7 +195,7 @@ class MockBinding extends AbstractBinding {
           })
         }
         this.writeOperation = null
-        debug(this.serialNumber, 'writing finished')
+        logger(this.serialNumber, 'writing finished')
       })
     return this.writeOperation
   }

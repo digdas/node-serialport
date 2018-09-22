@@ -1,0 +1,20 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "dist",
+  },
+  "include": [
+  , "../stream/lib/stream.ts", "../stream/lib/stream.js", "../stream/lib/stream.test.js"  "lib"
+  ],
+  "references": [
+    { "path": "../binding-mock" },
+    { "path": "../bindings" },
+    { "path": "../parser-byte-length" },
+    { "path": "../parser-cctalk" },
+    { "path": "../parser-delimiter" },
+    { "path": "../parser-readline" },
+    { "path": "../parser-ready" },
+    { "path": "../parser-regex" },
+    { "path": "../stream" }
+  ]
+}
